@@ -1,0 +1,27 @@
+version: "3.8"
+
+# Splunk OTel Collector — receives OTLP from the injected JVMs and
+# forwards traces + metrics to Splunk Observability Cloud.
+#
+# Required env vars (set in your shell before running):
+#   SPLUNK_ACCESS_TOKEN   — Splunk Observability ingest token
+#   SPLUNK_REALM          — e.g. us1, us0, eu0, ap0
+#
+# Usage:
+#   SPLUNK_ACCESS_TOKEN=xxx SPLUNK_REALM=us1 docker-compose up -d
+
+services:
+  splunk-otel-collector:
+    image: quay.io/signalfx/splunk-otel-collector:latest
+    container_name: hf-autoinstr-collector
+    environment:
+      - SPLUNK_ACCESS_TOKEN=${SPLUNK_ACCESS_TOKEN}
+      - SPLUNK_REALM=${SPLUNK_REALM}
+      # Accept OTLP from our injected JVMs on localhost
+      - SPLUNK_LISTEN_INTERFACE=0.0.0.0
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP  ← daemon sends here
+      - "13133:13133" # health check
+    network_mode: host   # so JVMs on the host can reach localhost:4318
+    restart: unless-stopped
