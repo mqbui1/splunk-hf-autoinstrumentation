@@ -1,0 +1,24 @@
+[project]
+name = "splunk-hf-autoinstrumentation"
+version = "0.1.0"
+description = "Auto-instrumentation daemon for JVM processes — bridges the Splunk Heavy Forwarder OTel TA gap"
+requires-python = ">=3.11"
+dependencies = [
+    "psutil>=5.9",
+]
+
+[project.scripts]
+splunk-autoinstrument = "autoinstrumentation.__main__:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-mock>=3.12",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["autoinstrumentation"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

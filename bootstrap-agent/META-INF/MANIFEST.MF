@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Premain-Class: com.splunk.autoinstr.BootstrapAgent
+Agent-Class: com.splunk.autoinstr.BootstrapAgent
+Can-Redefine-Classes: true
+Can-Retransform-Classes: true
+

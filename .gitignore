@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+dist/
+build/
+
+# TA build artifacts
+splunk-ta-hf-autoinstrumentation/.build/
+splunk-ta-hf-autoinstrumentation/dist/
+
+# Bootstrap agent compiled classes (JAR is kept, classes are not)
+bootstrap-agent/target/
+
+# OTel agent cache
+/tmp/splunk-autoinstrumentation/
+
+# State
+*.json
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
