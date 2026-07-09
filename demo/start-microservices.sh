@@ -59,6 +59,8 @@ start_service() {
         -Dspring.config.import=optional:configserver:http://localhost:8888 \
         -Deureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/ \
         -Deureka.instance.preferIpAddress=true \
+        -Deureka.instance.ipAddress=127.0.0.1 \
+        -Deureka.instance.hostname=localhost \
         -Dserver.port=$port \
         $extra_args \
         -jar "$jar" \
@@ -124,16 +126,17 @@ VISITS_JAR=$(ls "$MS_ROOT/spring-petclinic-visits-service/target/spring-petclini
 VETS_JAR=$(ls "$MS_ROOT/spring-petclinic-vets-service/target/spring-petclinic-vets-service-"*.jar 2>/dev/null | grep -v sources | head -1)
 GATEWAY_JAR=$(ls "$MS_ROOT/spring-petclinic-api-gateway/target/spring-petclinic-api-gateway-"*.jar 2>/dev/null | grep -v sources | head -1)
 
-start_service "customers-service" "$CUSTOMERS_JAR" 8081
+start_service "customers-service" "$CUSTOMERS_JAR" 8086
 start_service "visits-service"    "$VISITS_JAR"    8082
 start_service "vets-service"      "$VETS_JAR"      8083
 sleep 5  # let them register with Eureka first
-start_service "api-gateway"       "$GATEWAY_JAR"   8085
+# Netty native DNS resolver is unavailable on macOS arm64 — force JVM resolver
+start_service "api-gateway" "$GATEWAY_JAR" 8085 "-Dreactor.netty.http.server.accessLogEnabled=false -Dio.netty.resolver.dns.nativeOrder=false"
 
 # ── Step 3: Wait for all services to be ready ────────────────────────────────
 echo ""
 info "Waiting for all services to start..."
-wait_http "http://localhost:8081/actuator/health" "customers-service" 40
+wait_http "http://localhost:8086/actuator/health" "customers-service" 40
 wait_http "http://localhost:8082/actuator/health" "visits-service" 40
 wait_http "http://localhost:8083/actuator/health" "vets-service" 40
 wait_http "http://localhost:8085/actuator/health" "api-gateway" 40
@@ -141,7 +144,7 @@ wait_http "http://localhost:8085/actuator/health" "api-gateway" 40
 echo ""
 success "All services running:"
 success "  api-gateway       → http://localhost:8085"
-success "  customers-service → http://localhost:8081"
+success "  customers-service → http://localhost:8086"
 success "  visits-service    → http://localhost:8082"
 success "  vets-service      → http://localhost:8083"
 success "  discovery-server  → http://localhost:8761"

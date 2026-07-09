@@ -24,10 +24,19 @@ def _infer_service_name(cmdline: list[str]) -> str:
             return arg.split("=", 1)[1]
 
     # Executable jar: java -jar path/to/app.jar
+    # Strip version suffix: spring-petclinic-customers-service-4.0.1 → customers-service
+    import re
     for i, arg in enumerate(cmdline):
         if arg == "-jar" and i + 1 < len(cmdline):
-            jar = cmdline[i + 1].split("/")[-1]
-            return jar.replace(".jar", "")
+            jar = cmdline[i + 1].split("/")[-1].replace(".jar", "")
+            # Remove -X.Y.Z or -X.Y.Z-SNAPSHOT version suffixes
+            jar = re.sub(r"-\d+\.\d+[\w.\-]*$", "", jar)
+            # For spring-petclinic-* names, keep just the last meaningful segment
+            # e.g. spring-petclinic-customers-service → customers-service
+            m = re.match(r"spring-petclinic-(.+)", jar)
+            if m:
+                return m.group(1)
+            return jar
 
     # Spring Boot / common frameworks set the main class as the last non-flag arg
     main_class = None
