@@ -6,6 +6,22 @@ The Splunk OTel Collector TA for Heavy Forwarder is a data pipeline component �
 
 ---
 
+## Why not Splunk OpenTelemetry auto-instrumentation?
+
+Splunk's standard auto-instrumentation path requires either:
+- Modifying JVM startup scripts to add `-javaagent:/path/to/splunk-otel-javaagent.jar`
+- Using the Splunk OpenTelemetry Connector installer (Linux only, requires root, modifies `/etc/ld.so.preload` or systemd unit files)
+
+Neither option is viable when:
+- Application startup scripts are managed by a separate team or change-control process
+- JVMs are already running and cannot be restarted (production services, long-lived batch jobs)
+- The host is Windows Server or an older Linux distribution not supported by the installer
+- The Splunk HF/UF is already deployed but there is no separate OTel Collector agent
+
+**This project achieves the same result — the official Splunk OTel Java agent emitting traces and metrics — without touching the application, without restarting the JVM, and without root access.**
+
+---
+
 ## How it works
 
 ```
@@ -238,3 +254,41 @@ OTLP_ENDPOINT=http://localhost:4321 python3 -m autoinstrumentation
 - **Protocol** — JVM Attach uses null-byte (`\x00`) delimited fields, not newlines
 - **Already-instrumented detection** — checks for `-javaagent` in cmdline; dynamic attach is not detected (by design — re-injection is blocked by the JSON state file)
 - **Agent JAR** — downloaded once from GitHub releases, cached in `agent_cache_dir`
+
+---
+
+## Splunk TA use case: how the pieces fit together
+
+The Splunk Universal Forwarder or Heavy Forwarder is already deployed on every host that runs Java applications. Because it runs as the **same OS user** as those applications, it can attach to their JVMs directly — no new agent process, no firewall rules, no sidecar containers.
+
+```
+Host
+├── JVM: customers-service  (PID 1234, port 8086)
+├── JVM: vets-service        (PID 1235, port 8083)
+├── JVM: visits-service      (PID 1236, port 8082)
+└── Splunk Heavy Forwarder
+     └── TA: hf_autoinstrumentation  (modular input, interval=-1)
+          │
+          ├─ psutil: scans for java processes every 30s
+          ├─ jvm_attach.py: opens Unix domain socket to each JVM
+          ├─ Stage 1: loads bootstrap-agent.jar
+          │           → sets otel.service.name, otel.exporter.otlp.endpoint, etc.
+          ├─ Stage 2: loads splunk-otel-javaagent.jar
+          │           → starts tracing, metrics, profiling
+          └─ writes JSON audit events → Splunk index
+```
+
+### What this enables
+
+| Capability | Without this TA | With this TA |
+|---|---|---|
+| APM traces | Requires app restart + `-javaagent` flag | Zero restart, zero app change |
+| Service map | Not visible | api-gateway → customers/vets/visits |
+| Deployment environment tagging | Manual per-app config | Centrally set in `inputs.conf` |
+| Fleet coverage | One app at a time | All JVMs on the host, automatically |
+| Audit trail | None | Every injection indexed in Splunk |
+| Rollout | Change-management ticket per app | Single TA deployment |
+
+### Security boundary
+
+The JVM Attach API enforces that only a process running as the **same OS user** (or root) can attach. No elevated privileges are required beyond what the Splunk forwarder already has. The injected agent runs entirely inside the target JVM's existing process — no new ports, no new OS processes.
