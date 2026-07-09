@@ -34,7 +34,7 @@ PETCLINIC_JAR="${PETCLINIC_JAR:-}"
 PETCLINIC_PORT="${PETCLINIC_PORT:-8090}"
 DEPLOYMENT_ENV="${DEPLOYMENT_ENV:-hf-autoinstr-demo}"
 JATTACH_PATH="${JATTACH_PATH:-jattach}"
-OTLP_ENDPOINT="http://localhost:4318"
+OTLP_ENDPOINT="${OTLP_ENDPOINT:-http://localhost:4328}"
 
 # Colors
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -131,7 +131,7 @@ SPLUNK_ACCESS_TOKEN="$SPLUNK_ACCESS_TOKEN" SPLUNK_REALM="$SPLUNK_REALM" \
 
 info "Waiting for collector to be ready..."
 for i in $(seq 1 20); do
-    if curl -sf http://localhost:13133/ &>/dev/null; then
+    if curl -sf http://localhost:13134/ &>/dev/null; then
         success "Collector is healthy on localhost:4318"
         break
     fi

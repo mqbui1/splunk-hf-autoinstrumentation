@@ -20,8 +20,7 @@ services:
       # Accept OTLP from our injected JVMs on localhost
       - SPLUNK_LISTEN_INTERFACE=0.0.0.0
     ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP  ← daemon sends here
-      - "13133:13133" # health check
-    network_mode: host   # so JVMs on the host can reach localhost:4318
+      - "4327:4317"   # OTLP gRPC  (host 4327 → container 4317)
+      - "4328:4318"   # OTLP HTTP  ← daemon sends to localhost:4328
+      - "13134:13133" # health check
     restart: unless-stopped
